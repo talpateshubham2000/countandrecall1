@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Count & Recall</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff6b35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Count & Recall">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --card: #1a1a25;
+    --accent: #ff6b35;
+    --accent2: #ffcc02;
+    --text: #f0f0f0;
+    --muted: #666680;
+    --danger: #ff3355;
+    --success: #00e5a0;
+    --border: #2a2a3a;
+    --computer: #a855f7;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(255,107,53,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,204,2,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen {
+    display: none;
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    animation: fadeIn 0.4s ease;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ====== LANDING ====== */
+  #screen-landing {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .landing-badge {
+    display: inline-block;
+    background: rgba(255,107,53,0.15);
+    border: 1px solid rgba(255,107,53,0.3);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+  }
+
+  .game-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 14vw, 140px);
+    line-height: 0.9;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+  }
+
+  .game-subtitle {
+    color: var(--muted);
+    font-size: 16px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+  }
+
+  .landing-btns { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+
+  .btn-start {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 18px 56px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 0 40px rgba(255,107,53,0.35);
+    width: 260px;
+  }
+  .btn-start:hover { transform: translateY(-3px); box-shadow: 0 8px 50px rgba(255,107,53,0.55); }
+
+  .btn-vs-computer {
+    background: rgba(168,85,247,0.15);
+    color: var(--computer);
+    border: 2px solid rgba(168,85,247,0.4);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 16px 40px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    width: 260px;
+  }
+  .btn-vs-computer:hover { background: rgba(168,85,247,0.25); border-color: var(--computer); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(168,85,247,0.3); }
+
+  .landing-deco {
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 200px;
+    color: rgba(255,255,255,0.02);
+    pointer-events: none;
+    user-select: none;
+  }
+  .deco-1 { top: -40px; left: -20px; }
+  .deco-2 { bottom: -60px; right: -20px; }
+
+  /* ====== RULES ====== */
+  #screen-rules { padding: 40px 20px; align-items: center; justify-content: center; }
+  .rules-container { max-width: 600px; width: 100%; }
+
+  .section-label { font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 52px; line-height: 1; margin-bottom: 36px; }
+
+  .rule-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 14px;
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+  }
+  .rule-num { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); min-width: 32px; line-height: 1.1; }
+  .rule-text { font-size: 14px; line-height: 1.7; color: #bbbbd0; }
+  .rule-text strong { color: var(--text); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 16px 40px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 24px;
+    width: 100%;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-2px); }
+
+  /* ====== DIFFICULTY ====== */
+  #screen-difficulty { padding: 40px 20px; align-items: center; justify-content: center; }
+  .diff-container { max-width: 480px; width: 100%; }
+  .diff-cards { display: flex; flex-direction: column; gap: 14px; margin: 28px 0; }
+
+  .diff-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 18px;
+    padding: 22px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .diff-card:hover { transform: translateX(6px); }
+  .diff-card.easy:hover  { border-color: var(--success); background: rgba(0,229,160,0.07); }
+  .diff-card.medium:hover { border-color: var(--accent2); background: rgba(255,204,2,0.07); }
+  .diff-card.hard:hover  { border-color: var(--danger); background: rgba(255,51,85,0.07); }
+
+  .diff-emoji { font-size: 36px; }
+  .diff-info { flex: 1; }
+  .diff-name { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; margin-bottom: 4px; }
+  .diff-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .diff-card.easy  .diff-name { color: var(--success); }
+  .diff-card.medium .diff-name { color: var(--accent2); }
+  .diff-card.hard  .diff-name { color: var(--danger); }
+
+  /* ====== PLAYER SELECT ====== */
+  #screen-players { padding: 40px 20px; align-items: center; justify-content: center; }
+  .players-container { max-width: 520px; width: 100%; }
+
+  .player-count-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 28px 0; }
+  .count-btn {
+    background: var(--card);
+    border: 2px solid var(--border);
+    color: var(--text);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    padding: 20px 10px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .count-btn:hover, .count-btn.selected { border-color: var(--accent); background: rgba(255,107,53,0.1); color: var(--accent); }
+
+  .names-grid { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+  .name-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px 16px 4px 8px;
+    transition: border-color 0.2s;
+  }
+  .name-input-wrap:focus-within { border-color: var(--accent); }
+  .name-input-wrap.computer-row { border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.06); }
+
+  .player-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 18px; flex-shrink: 0; }
+  .name-input { background: transparent; border: none; outline: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; flex: 1; padding: 12px 0; }
+  .name-input::placeholder { color: var(--muted); }
+
+  /* ====== GAME SCREEN ====== */
+  #screen-game { padding: 0; min-height: 100vh; }
+
+  .game-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .game-logo { font-family: 'Bebas Neue', sans-serif; font-size: 24px; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .assigned-count { font-size: 12px; color: var(--muted); background: var(--card); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; }
+  .assigned-count span { color: var(--accent); font-weight: 600; }
+
+  .diff-badge { font-size: 11px; padding: 4px 10px; border-radius: 12px; font-weight: 600; letter-spacing: 1px; }
+  .diff-badge.easy   { background: rgba(0,229,160,0.15); color: var(--success); }
+  .diff-badge.medium { background: rgba(255,204,2,0.15); color: var(--accent2); }
+  .diff-badge.hard   { background: rgba(255,51,85,0.15); color: var(--danger); }
+
+  .players-bar { display: flex; gap: 8px; padding: 14px 20px; overflow-x: auto; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .player-chip { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 30px; border: 2px solid var(--border); font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.2s; opacity: 0.5; }
+  .player-chip.active { opacity: 1; border-color: var(--accent); background: rgba(255,107,53,0.1); }
+  .player-chip.active.is-computer { border-color: var(--computer); background: rgba(168,85,247,0.1); }
+  .player-chip.out { opacity: 0.3; text-decoration: line-through; }
+  .chip-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .game-main { padding: 24px 20px; max-width: 520px; margin: 0 auto; }
+
+  .current-player-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .current-player-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .current-player-card.computer-turn::before { background: linear-gradient(90deg, var(--computer), #c084fc); }
+
+  .computer-thinking { display: none; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
+  .computer-thinking.show { display: flex; }
+  .think-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--computer); animation: thinkBounce 0.8s ease infinite; }
+  .think-dot:nth-child(2) { animation-delay: 0.15s; }
+  .think-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes thinkBounce { 0%,100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-8px); opacity: 1; } }
+
+  .cp-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .cp-name { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 1px; }
+  .cp-action { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  .number-display { text-align: center; margin: 20px 0; }
+  .big-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(100px, 25vw, 160px);
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .number-hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .number-hint.has-word { color: var(--accent2); font-weight: 500; }
+
+  .timer-wrap { margin: 16px 0; }
+  .timer-bar-bg { background: var(--border); height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+  .timer-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--success), var(--accent2)); transition: width 1s linear, background 0.5s; }
+  .timer-bar.warning { background: linear-gradient(90deg, var(--accent), var(--danger)); }
+  .timer-text { text-align: center; font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--muted); }
+  .timer-text.warning { color: var(--danger); }
+
+  .action-area { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+  .btn-correct { background: var(--success); color: #000; border: none; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700; padding: 18px; border-radius: 14px; cursor: pointer; transition: all 0.2s; }
+  .btn-correct:hover { opacity: 0.9; transform: translateY(-2px); }
+  .btn-wrong { background: transparent; color: var(--danger); border: 2px solid var(--danger); font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; padding: 16px; border-radius: 14px; cursor: pointer; transition: all 0.2s; }
+  .btn-wrong:hover { background: rgba(255,51,85,0.1); }
+
+  .computer-banner { background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); border-radius: 14px; padding: 20px; text-align: center; margin-top: 20px; display: none; }
+  .computer-banner.show { display: block; }
+  .computer-banner-text { color: var(--computer); font-size: 15px; font-weight: 500; }
+  .computer-said { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: #fff; margin-top: 8px; }
+
+  /* Modals */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 32px; max-width: 440px; width: 100%; animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 38px; margin-bottom: 6px; background: linear-gradient(135deg, #fff, var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .modal-sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+  .assign-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 24px; }
+  .num-pick { background: var(--surface); border: 2px solid var(--border); color: var(--text); font-family: 'Bebas Neue', sans-serif; font-size: 26px; padding: 14px 8px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; }
+  .num-pick:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
+  .num-pick.picked { border-color: var(--accent2); background: rgba(255,204,2,0.1); color: var(--accent2); }
+  .num-pick:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  .word-input-wrap { margin-bottom: 20px; }
+  .word-label { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .word-input { width: 100%; background: var(--surface); border: 2px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; padding: 14px 16px; outline: none; transition: border-color 0.2s; }
+  .word-input:focus { border-color: var(--accent2); }
+
+  .btn-assign { background: var(--accent2); color: #000; border: none; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700; padding: 16px; border-radius: 12px; cursor: pointer; width: 100%; transition: all 0.2s; }
+  .btn-assign:hover { opacity: 0.9; }
+  .btn-assign:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .out-modal .modal-title { background: linear-gradient(135deg, var(--danger), #ff7799); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+  /* Winner */
+  #screen-winner { align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
+  .winner-emoji { font-size: 80px; margin-bottom: 20px; animation: bounce 1s infinite; }
+  @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+  .winner-label { font-size: 12px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  .winner-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px, 15vw, 100px); background: linear-gradient(135deg, var(--accent2), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 8px; }
+  .winner-sub { color: var(--muted); font-size: 16px; margin-bottom: 16px; }
+  .winner-tip { color: var(--muted); font-size: 13px; max-width: 320px; margin: 0 auto 40px; line-height: 1.6; padding: 14px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); }
+
+  .confetti-piece { position: fixed; pointer-events: none; animation: confettiFall linear forwards; z-index: 200; }
+  @keyframes confettiFall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+
+  .btn-play-again { background: transparent; color: var(--text); border: 2px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; padding: 16px 48px; border-radius: 50px; cursor: pointer; transition: all 0.2s; margin-top: 16px; }
+  .btn-play-again:hover { border-color: var(--accent); color: var(--accent); }
+
+  .c0 { background: #ff6b35; } .c1 { background: #3b82f6; } .c2 { background: #8b5cf6; } .c3 { background: #10b981; } .c4 { background: #f59e0b; } .cAI { background: var(--computer); }
+  .tc0 { color: #ff6b35; } .tc1 { color: #3b82f6; } .tc2 { color: #8b5cf6; } .tc3 { color: #10b981; } .tc4 { color: #f59e0b; } .tcAI { color: var(--computer); }
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="screen-landing" class="screen active">
+  <span class="landing-deco deco-1">10</span>
+  <span class="landing-deco deco-2">1</span>
+  <div class="landing-badge">🧠 Memory · Numbers · Words</div>
+  <div class="game-title">Count<br>&amp;<br>Recall</div>
+  <div class="game-subtitle">Remember the word. Don't break the chain.</div>
+  <div class="landing-btns">
+    <button class="btn-start" onclick="showScreen('rules')">👥 Play with Friends</button>
+    <button class="btn-vs-computer" onclick="showScreen('difficulty')">🤖 Play vs Computer</button>
+  </div>
+</div>
+
+<!-- RULES -->
+<div id="screen-rules" class="screen">
+  <div class="rules-container" style="padding:40px 20px;margin:auto;">
+    <div class="section-label">How to Play</div>
+    <div class="section-title">The Rules</div>
+    <div class="rule-card"><div class="rule-num">1</div><div class="rule-text">Players take turns <strong>counting from 1 to 10</strong>, one number per turn in order.</div></div>
+    <div class="rule-card"><div class="rule-num">2</div><div class="rule-text">When a player lands on <strong>number 10</strong>, they must <strong>assign a secret word</strong> to any unassigned number of their choice.</div></div>
+    <div class="rule-card"><div class="rule-num">3</div><div class="rule-text">After assigning, counting <strong>restarts from 1</strong> with the next player.</div></div>
+    <div class="rule-card"><div class="rule-num">4</div><div class="rule-text">Whenever an <strong>assigned number</strong> comes up, say the <strong>word instead of the number</strong>. Judge clicks ✓ or ✗.</div></div>
+    <div class="rule-card"><div class="rule-num">5</div><div class="rule-text">You have <strong>30 seconds</strong> per turn. Forget the word or time out → you're <strong>OUT!</strong></div></div>
+    <div class="rule-card"><div class="rule-num">6</div><div class="rule-text"><strong>Last player standing wins!</strong> Eliminated players' words <strong>stay</strong> in the game.</div></div>
+    <button class="btn-primary" onclick="goToPlayerSelect(false)">Got it! Pick Players →</button>
+  </div>
+</div>
+
+<!-- DIFFICULTY -->
+<div id="screen-difficulty" class="screen">
+  <div class="diff-container" style="padding:40px 20px;margin:auto;">
+    <div class="section-label">vs Computer</div>
+    <div class="section-title">Choose Difficulty</div>
+    <div class="diff-cards">
+      <div class="diff-card easy" onclick="selectDifficulty('easy')">
+        <div class="diff-emoji">🌱</div>
+        <div class="diff-info">
+          <div class="diff-name">Easy</div>
+          <div class="diff-desc">Computer forgets words ~45% of the time. Great for beginners warming up!</div>
+        </div>
+      </div>
+      <div class="diff-card medium" onclick="selectDifficulty('medium')">
+        <div class="diff-emoji">⚡</div>
+        <div class="diff-info">
+          <div class="diff-name">Medium</div>
+          <div class="diff-desc">Computer forgets ~20% of the time. A real challenge — stay sharp!</div>
+        </div>
+      </div>
+      <div class="diff-card hard" onclick="selectDifficulty('hard')">
+        <div class="diff-emoji">💀</div>
+        <div class="diff-info">
+          <div class="diff-name">Hard</div>
+          <div class="diff-desc">Computer almost never forgets. It will push your memory to the absolute limit!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYER SELECT -->
+<div id="screen-players" class="screen">
+  <div class="players-container" style="padding:40px 20px;margin:auto;">
+    <div class="section-label" id="players-label">Multiplayer</div>
+    <div class="section-title">Who's Playing?</div>
+    <div id="player-count-section">
+      <div class="player-count-grid">
+        <button class="count-btn" onclick="selectCount(2)">2</button>
+        <button class="count-btn" onclick="selectCount(3)">3</button>
+        <button class="count-btn" onclick="selectCount(4)">4</button>
+        <button class="count-btn" onclick="selectCount(5)">5</button>
+      </div>
+    </div>
+    <div class="names-grid" id="names-grid"></div>
+    <button class="btn-primary" id="btn-start-game" onclick="startGame()" style="display:none">Start Game 🎮</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div class="game-header">
+    <div class="game-logo">Count &amp; Recall</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="diff-badge" id="diff-badge" style="display:none"></span>
+      <div class="assigned-count">Assigned: <span id="assigned-count">0</span>/10</div>
+    </div>
+  </div>
+  <div class="players-bar" id="players-bar"></div>
+  <div class="game-main">
+    <div class="current-player-card" id="current-player-card">
+      <div class="cp-label">Current Turn</div>
+      <div class="cp-name" id="cp-name">—</div>
+      <div class="cp-action" id="cp-action">Say the number!</div>
+      <div class="computer-thinking" id="computer-thinking">
+        <div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div>
+      </div>
+    </div>
+    <div class="number-display">
+      <div class="big-number" id="big-number">1</div>
+      <div class="number-hint" id="number-hint">No word assigned</div>
+    </div>
+    <div class="timer-wrap" id="timer-wrap">
+      <div class="timer-bar-bg"><div class="timer-bar" id="timer-bar"></div></div>
+      <div class="timer-text" id="timer-text">30</div>
+    </div>
+    <div class="action-area" id="action-area">
+      <button class="btn-correct" id="btn-correct-main" onclick="playerCorrect()">✓ Correct</button>
+      <button class="btn-wrong" onclick="playerWrong()">✗ Wrong / Forgot</button>
+    </div>
+
+    <!-- Word recall input — shown only in vs Computer mode when assigned number comes -->
+    <div id="recall-area" style="display:none;margin-top:20px;">
+      <div style="font-size:12px;color:var(--accent2);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;text-align:center;">⚠️ Type the secret word for this number!</div>
+      <div style="display:flex;gap:10px;">
+        <input id="recall-input" type="text" maxlength="20" placeholder="Type the word..." autocomplete="off"
+          style="flex:1;background:var(--card);border:2px solid var(--accent2);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;padding:14px 16px;outline:none;"
+          onkeydown="if(event.key==='Enter') submitRecall()" />
+        <button onclick="submitRecall()"
+          style="background:var(--accent2);color:#000;border:none;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;padding:14px 22px;border-radius:12px;cursor:pointer;">OK</button>
+      </div>
+      <div id="recall-feedback" style="text-align:center;margin-top:10px;font-size:14px;min-height:20px;"></div>
+    </div>
+    <div class="computer-banner" id="computer-banner">
+      <div class="computer-banner-text" id="computer-banner-text">🤖 Thinking...</div>
+      <div class="computer-said" id="computer-said"></div>
+      <button id="got-it-btn" onclick="gotItAfterComputer()" style="display:none;margin-top:16px;background:var(--computer);color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;padding:12px 32px;border-radius:30px;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">Got it! 👍</button>
+    </div>
+  </div>
+</div>
+
+<!-- WINNER -->
+<div id="screen-winner" class="screen">
+  <div class="winner-emoji" id="winner-emoji">🏆</div>
+  <div class="winner-label">Winner!</div>
+  <div class="winner-name" id="winner-name">—</div>
+  <div class="winner-sub" id="winner-sub">Count &amp; Recall Champion</div>
+  <div class="winner-tip" id="winner-tip" style="display:none"></div>
+  <button class="btn-play-again" onclick="resetGame()">Play Again</button>
+</div>
+
+<!-- ASSIGN MODAL -->
+<div class="modal-overlay" id="assign-modal">
+  <div class="modal">
+    <div class="modal-title">🎯 Assign a Word</div>
+    <div class="modal-sub" id="assign-sub">Pick a number and assign a secret word!</div>
+    <div class="assign-grid" id="assign-grid"></div>
+    <div class="word-input-wrap">
+      <div class="word-label">Your Secret Word</div>
+      <input class="word-input" id="word-input" type="text" placeholder="e.g. Tablet, Car, Sun..." maxlength="20" oninput="checkAssignReady()" />
+    </div>
+    <button class="btn-assign" id="btn-assign" onclick="confirmAssign()" disabled>Assign Word ✓</button>
+  </div>
+</div>
+
+<!-- OUT MODAL -->
+<div class="modal-overlay" id="out-modal">
+  <div class="modal out-modal">
+    <div class="modal-title" id="out-title">💀 OUT!</div>
+    <div class="modal-sub" id="out-sub">Better luck next time.</div>
+    <button class="btn-assign" style="background:var(--danger);color:#fff;" onclick="closeOutModal()">Continue →</button>
+  </div>
+</div>
+
+<script>
+let players = [], currentPlayerIdx = 0, currentCount = 1;
+let assignedWords = {}, timerInterval = null, timerSeconds = 30;
+let selectedCount = 0, assignPickedNum = null;
+let isVsComputer = false, difficulty = 'medium', computerThinkTimeout = null;
+
+const FAIL_CHANCE = { easy: 0.45, medium: 0.20, hard: 0.04 };
+const WORD_BANK = ['Rocket','Zebra','Mango','Castle','Mirror','Piano','Dragon','Cactus','Lantern','Biscuit','Thunder','Parrot','Compass','Chimney','Dolphin','Velvet','Glacier','Hammer','Noodle','Sapphire','Tornado','Whisper','Volcano','Jungle','Crystal','Feather'];
+const COLORS = ['c0','c1','c2','c3','c4','cAI'];
+const TEXT_COLORS = ['tc0','tc1','tc2','tc3','tc4','tcAI'];
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function goToPlayerSelect(vsComp) {
+  isVsComputer = vsComp;
+  if (vsComp) {
+    document.getElementById('players-label').textContent = 'vs Computer';
+    document.getElementById('player-count-section').style.display = 'none';
+    renderSinglePlayerInput();
+    document.getElementById('btn-start-game').style.display = 'block';
+  } else {
+    document.getElementById('players-label').textContent = 'Multiplayer';
+    document.getElementById('player-count-section').style.display = 'block';
+    document.getElementById('names-grid').innerHTML = '';
+    document.getElementById('btn-start-game').style.display = 'none';
+  }
+  showScreen('players');
+}
+
+function selectDifficulty(diff) {
+  difficulty = diff;
+  goToPlayerSelect(true);
+}
+
+function renderSinglePlayerInput() {
+  const grid = document.getElementById('names-grid');
+  grid.innerHTML = `
+    <div class="name-input-wrap">
+      <div class="player-avatar c0" style="color:#fff;font-family:'Bebas Neue',sans-serif;font-size:18px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;">👤</div>
+      <input class="name-input" type="text" placeholder="Your name" maxlength="12" />
+    </div>
+    <div class="name-input-wrap computer-row">
+      <div class="player-avatar cAI" style="color:#fff;font-family:'Bebas Neue',sans-serif;font-size:22px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;">🤖</div>
+      <input class="name-input" type="text" value="Computer" readonly style="color:var(--computer);font-weight:600;" />
+    </div>`;
+}
+
+function selectCount(n) {
+  selectedCount = n;
+  document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+  const grid = document.getElementById('names-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'name-input-wrap';
+    wrap.innerHTML = `
+      <div class="player-avatar ${COLORS[i]}" style="color:#fff;font-family:'Bebas Neue',sans-serif;font-size:18px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;">${i+1}</div>
+      <input class="name-input" type="text" placeholder="Player ${i+1} name" maxlength="12" />`;
+    grid.appendChild(wrap);
+  }
+  document.getElementById('btn-start-game').style.display = 'block';
+}
+
+function startGame() {
+  players = []; assignedWords = {}; currentPlayerIdx = 0; currentCount = 1;
+  clearTimeout(computerThinkTimeout); clearInterval(timerInterval);
+
+  const inputs = document.querySelectorAll('.name-input');
+  if (isVsComputer) {
+    players.push({ name: inputs[0].value.trim() || 'You', colorIdx: 0, out: false, isComputer: false });
+    players.push({ name: 'Computer', colorIdx: 5, out: false, isComputer: true });
+    const badge = document.getElementById('diff-badge');
+    badge.textContent = difficulty.toUpperCase(); badge.className = 'diff-badge ' + difficulty; badge.style.display = 'inline-block';
+  } else {
+    inputs.forEach((inp, i) => players.push({ name: inp.value.trim() || `Player ${i+1}`, colorIdx: i, out: false, isComputer: false }));
+    document.getElementById('diff-badge').style.display = 'none';
+  }
+
+  renderPlayersBar(); updateGameUI(); showScreen('game');
+  getCurrentPlayer().isComputer ? doComputerTurn() : startTimer();
+}
+
+function renderPlayersBar() {
+  const bar = document.getElementById('players-bar');
+  bar.innerHTML = '';
+  players.forEach((p, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'player-chip' + (p.out ? ' out' : '') + (p.isComputer ? ' is-computer' : '');
+    chip.id = 'chip-' + i;
+    chip.innerHTML = `<span class="chip-dot ${COLORS[p.colorIdx]}"></span>${p.name}`;
+    bar.appendChild(chip);
+  });
+}
+
+function getCurrentPlayer() {
+  const active = players.filter(p => !p.out);
+  return active.length ? active[currentPlayerIdx % active.length] : players[0];
+}
+
+function updateGameUI() {
+  const cp = getCurrentPlayer();
+  const isComp = cp.isComputer;
+  document.getElementById('cp-name').textContent = cp.name;
+  document.getElementById('cp-name').className = 'cp-name ' + TEXT_COLORS[cp.colorIdx];
+  document.getElementById('current-player-card').className = 'current-player-card' + (isComp ? ' computer-turn' : '');
+  document.getElementById('computer-thinking').className = 'computer-thinking' + (isComp ? ' show' : '');
+
+  const num = currentCount;
+  document.getElementById('big-number').textContent = num;
+  const hintEl = document.getElementById('number-hint');
+  if (assignedWords[num]) {
+    hintEl.textContent = '⚠️ This number has a secret word!'; hintEl.className = 'number-hint has-word';
+    document.getElementById('cp-action').textContent = isComp ? 'Computer must recall the word...' : 'You must say the secret word!';
+  } else {
+    hintEl.textContent = 'No word assigned'; hintEl.className = 'number-hint';
+    document.getElementById('cp-action').textContent = isComp ? 'Computer is counting...' : 'Say the number!';
+  }
+  document.getElementById('assigned-count').textContent = Object.keys(assignedWords).length;
+
+  players.forEach((p, i) => {
+    const chip = document.getElementById('chip-' + i);
+    if (chip) {
+      chip.classList.remove('active');
+      if (!p.out && p === cp) chip.classList.add('active');
+    }
+  });
+
+  // vs Computer mode: show recall input if assigned number, else show normal buttons
+  const isAssigned = !!assignedWords[num];
+  const showRecall = !isComp && isVsComputer && isAssigned;
+
+  document.getElementById('action-area').style.display = isComp ? 'none' : (showRecall ? 'none' : 'flex');
+  document.getElementById('recall-area').style.display = showRecall ? 'block' : 'none';
+  document.getElementById('timer-wrap').style.display = isComp ? 'none' : 'block';
+  if (!isComp) document.getElementById('computer-banner').className = 'computer-banner';
+
+  if (showRecall) {
+    document.getElementById('recall-input').value = '';
+    document.getElementById('recall-feedback').textContent = '';
+    setTimeout(() => document.getElementById('recall-input').focus(), 100);
+  }
+}
+
+// ===== COMPUTER AI =====
+function doComputerTurn() {
+  clearInterval(timerInterval);
+  const num = currentCount;
+  const word = assignedWords[num];
+  const banner = document.getElementById('computer-banner');
+  const bannerText = document.getElementById('computer-banner-text');
+  const computerSaid = document.getElementById('computer-said');
+  const gotItBtn = document.getElementById('got-it-btn');
+
+  banner.className = 'computer-banner show';
+  bannerText.textContent = '🤖 Computer is thinking...';
+  computerSaid.textContent = '';
+  gotItBtn.style.display = 'none';
+
+  const thinkTime = 1000 + Math.random() * 1200;
+
+  computerThinkTimeout = setTimeout(() => {
+    if (word) {
+      const fails = Math.random() < FAIL_CHANCE[difficulty];
+      if (fails) {
+        bannerText.textContent = '🤖 Computer said:';
+        computerSaid.textContent = `"${num}" ❌  (Forgot the word!)`;
+        computerThinkTimeout = setTimeout(computerFails, 1800);
+      } else {
+        bannerText.textContent = '🤖 Computer said:';
+        computerSaid.textContent = `"${word}" ✅`;
+        computerThinkTimeout = setTimeout(() => {
+          // Bug Fix 1: computer reached 10 → computer assigns (not human)
+          if (num === 10) computerAssign(); else advanceTurn();
+        }, 1800);
+      }
+    } else {
+      bannerText.textContent = '🤖 Computer said:';
+      computerSaid.textContent = `"${num}" ✅`;
+      computerThinkTimeout = setTimeout(() => {
+        if (num === 10) computerAssign(); else advanceTurn();
+      }, 1500);
+    }
+  }, thinkTime);
+}
+
+function computerFails() {
+  const cp = getCurrentPlayer();
+  document.getElementById('out-title').textContent = `💀 Computer is OUT!`;
+  document.getElementById('out-sub').textContent = `Computer forgot the word! Great memory! 🎉`;
+  document.getElementById('out-modal').classList.add('open');
+  cp.out = true;
+  const remaining = players.filter(p => !p.out);
+  if (remaining.length === 1) setTimeout(() => { document.getElementById('out-modal').classList.remove('open'); showWinner(remaining[0]); }, 1500);
+}
+
+function computerAssign() {
+  const unassigned = [];
+  for (let i = 1; i <= 10; i++) { if (!assignedWords[i]) unassigned.push(i); }
+  if (!unassigned.length) { advancePlayer(); currentCount = 1; updateGameUI(); checkAndRunTurn(); return; }
+
+  const pickedNum = unassigned[Math.floor(Math.random() * unassigned.length)];
+  const usedWords = Object.values(assignedWords);
+  const available = WORD_BANK.filter(w => !usedWords.includes(w));
+  const pickedWord = available[Math.floor(Math.random() * available.length)] || 'Cloud';
+  assignedWords[pickedNum] = pickedWord;
+
+  const banner = document.getElementById('computer-banner');
+  const bannerText = document.getElementById('computer-banner-text');
+  const computerSaid = document.getElementById('computer-said');
+  const gotItBtn = document.getElementById('got-it-btn');
+
+  banner.className = 'computer-banner show';
+  bannerText.textContent = `🤖 Computer assigned to number ${pickedNum}:`;
+  computerSaid.textContent = `"${pickedWord}" 🧠 Remember this!`;
+  document.getElementById('assigned-count').textContent = Object.keys(assignedWords).length;
+
+  // Bug Fix 2: show Got it button — wait for user to confirm before continuing
+  gotItBtn.style.display = 'block';
+}
+
+// Called when user clicks "Got it!" after computer assigns
+function gotItAfterComputer() {
+  document.getElementById('got-it-btn').style.display = 'none';
+  advancePlayer(); currentCount = 1; updateGameUI(); checkAndRunTurn();
+}
+
+function checkAndRunTurn() {
+  getCurrentPlayer().isComputer ? doComputerTurn() : startTimer();
+}
+
+// ===== TIMER =====
+function startTimer() {
+  clearInterval(timerInterval); timerSeconds = 30; updateTimerUI();
+  timerInterval = setInterval(() => {
+    timerSeconds--; updateTimerUI();
+    if (timerSeconds <= 0) { clearInterval(timerInterval); playerWrong(); }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const pct = (timerSeconds / 30) * 100;
+  const bar = document.getElementById('timer-bar'), txt = document.getElementById('timer-text');
+  bar.style.width = pct + '%';
+  bar.className = timerSeconds <= 10 ? 'timer-bar warning' : 'timer-bar';
+  txt.className = timerSeconds <= 10 ? 'timer-text warning' : 'timer-text';
+  txt.textContent = timerSeconds;
+}
+
+// ===== HUMAN ACTIONS =====
+function playerCorrect() {
+  clearInterval(timerInterval);
+  // Bug Fix 1: only human gets modal on 10; computer assigns automatically in doComputerTurn
+  if (currentCount === 10) {
+    const cp = getCurrentPlayer();
+    if (!cp.isComputer) { openAssignModal(); return; }
+  }
+  advanceTurn();
+}
+
+// ===== WORD RECALL CHECK (vs Computer only) =====
+function submitRecall() {
+  const input = document.getElementById('recall-input');
+  const feedback = document.getElementById('recall-feedback');
+  const typed = input.value.trim().toLowerCase();
+  const correct = assignedWords[currentCount].toLowerCase();
+
+  if (!typed) return;
+
+  if (typed === correct) {
+    feedback.style.color = 'var(--success)';
+    feedback.textContent = '✅ Correct!';
+    input.disabled = true;
+    clearInterval(timerInterval);
+    setTimeout(() => {
+      input.disabled = false;
+      advanceTurn();
+    }, 800);
+  } else {
+    feedback.style.color = 'var(--danger)';
+    feedback.textContent = `❌ Wrong! The word was "${assignedWords[currentCount]}"`;
+    input.disabled = true;
+    setTimeout(() => {
+      input.disabled = false;
+      playerWrong();
+    }, 1500);
+  }
+}
+
+function advanceTurn() {
+  currentCount++;
+  if (currentCount > 10) { currentCount = 1; advancePlayer(); updateGameUI(); checkAndRunTurn(); return; }
+  advancePlayer(); updateGameUI(); checkAndRunTurn();
+}
+
+function advancePlayer() {
+  const active = players.filter(p => !p.out);
+  currentPlayerIdx = (currentPlayerIdx + 1) % active.length;
+}
+
+function playerWrong() {
+  clearInterval(timerInterval); clearTimeout(computerThinkTimeout);
+  const cp = getCurrentPlayer();
+  document.getElementById('out-title').textContent = `💀 ${cp.name} is OUT!`;
+  document.getElementById('out-sub').textContent = `${cp.name} forgot the word or ran out of time!`;
+  document.getElementById('out-modal').classList.add('open');
+  cp.out = true;
+  const remaining = players.filter(p => !p.out);
+  if (remaining.length === 1) {
+    setTimeout(() => { document.getElementById('out-modal').classList.remove('open'); showWinner(remaining[0]); }, 1500);
+    return;
+  }
+  // Bug Fix 3: cleanly reset index so it lands on correct next active player
+  currentPlayerIdx = 0;
+}
+
+function closeOutModal() {
+  document.getElementById('out-modal').classList.remove('open');
+  renderPlayersBar(); currentCount = 1; updateGameUI(); checkAndRunTurn();
+}
+
+// ===== ASSIGN MODAL =====
+function openAssignModal() {
+  assignPickedNum = null;
+  document.getElementById('word-input').value = '';
+  document.getElementById('btn-assign').disabled = true;
+  document.getElementById('assign-sub').textContent = `You reached 10! Pick a number and assign a secret word.`;
+
+  const grid = document.getElementById('assign-grid');
+  grid.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'num-pick'; btn.textContent = i;
+    if (assignedWords[i]) btn.disabled = true;
+    else btn.onclick = () => { assignPickedNum = i; document.querySelectorAll('.num-pick').forEach(b => b.classList.remove('picked')); btn.classList.add('picked'); checkAssignReady(); };
+    grid.appendChild(btn);
+  }
+  document.getElementById('assign-modal').classList.add('open');
+}
+
+function checkAssignReady() {
+  const word = document.getElementById('word-input').value.trim();
+  document.getElementById('btn-assign').disabled = !(assignPickedNum && word.length > 0);
+}
+
+function confirmAssign() {
+  const word = document.getElementById('word-input').value.trim();
+  if (!assignPickedNum || !word) return;
+  assignedWords[assignPickedNum] = word;
+  document.getElementById('assign-modal').classList.remove('open');
+  advancePlayer(); currentCount = 1; updateGameUI(); checkAndRunTurn();
+}
+
+// ===== WINNER =====
+function showWinner(player) {
+  clearInterval(timerInterval); clearTimeout(computerThinkTimeout);
+  document.getElementById('winner-emoji').textContent = player.isComputer ? '🤖' : '🏆';
+  document.getElementById('winner-name').textContent = player.name;
+
+  if (player.isComputer) {
+    document.getElementById('winner-sub').textContent = `Computer wins on ${difficulty.toUpperCase()} mode!`;
+    const tip = document.getElementById('winner-tip');
+    tip.style.display = 'block';
+    const tips = { easy: 'Keep playing! Try Medium next to sharpen your memory 💪', medium: 'So close! Play again — repetition builds memory 🧠', hard: 'Hard mode is brutal! Every game makes you stronger 🔥' };
+    tip.textContent = '💡 ' + tips[difficulty];
+  } else {
+    document.getElementById('winner-sub').textContent = isVsComputer ? `You beat Computer on ${difficulty.toUpperCase()}! 🎉` : 'Count & Recall Champion!';
+    document.getElementById('winner-tip').style.display = 'none';
+  }
+  showScreen('winner'); launchConfetti();
+}
+
+function launchConfetti() {
+  const colors = ['#ff6b35','#ffcc02','#00e5a0','#3b82f6','#8b5cf6','#ff3355'];
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.cssText = `left:${Math.random()*100}vw;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*10}px;height:${6+Math.random()*10}px;border-radius:${Math.random()>0.5?'50%':'2px'};animation-duration:${2+Math.random()*3}s`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 5000);
+    }, i * 40);
+  }
+}
+
+function resetGame() {
+  clearInterval(timerInterval); clearTimeout(computerThinkTimeout);
+  players = []; currentPlayerIdx = 0; currentCount = 1; assignedWords = {}; isVsComputer = false;
+  showScreen('landing');
+}
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('SW registered'))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+</script>
+</body>
+</html>
